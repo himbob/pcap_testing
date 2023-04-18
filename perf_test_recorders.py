@@ -8,8 +8,8 @@ from scapy.all import rdpcap
 
 def run_command(tool, iface):
     commands = {
-        "tcpdump": f"tcpdump -i {iface} -v -Z root --immediate-mode --packet-buffered -B 131072 --time-stamp-precision=micro -w /data/tmp/{iface}.pcap -c 88888",
-        "tshark": f"tshark -i {iface} -l -B 131072 -w /data/tmp/{iface}.pcap -q -c 888888888",
+        "tcpdump": f"tcpdump -i {iface} -v -Z root --immediate-mode --packet-buffered -B 131072 --time-stamp-precision=micro -w /data/tmp/{iface}.pcap -c {args.total_packets_sent}",
+        "tshark": f"tshark -i {iface} -l -B 131072 -w /data/tmp/{iface}.pcap -q -c {args.total_packets_sent}",
         "dumpcap": f"dumpcap -i {iface} -w /data/tmp/{iface}.pcap -a duration:8888888"
     }
 
@@ -70,11 +70,13 @@ def main(args):
         print("\nInterrupted by user. Stopping packet capture.")
 
     finally:
+        total_packets_sent = args.total_packets_sent
         print("\nAnalysis Results:")
         for iface in interfaces:
             if os.path.exists(f"/data/tmp/{iface}.pcap"):
                 packets_count, pcap_size = analyze_pcap(iface)
-                print(f"Interface {iface}: {packets_count} packets captured, pcap size: {pcap_size} bytes")
+                packets_dropped = total_packets_sent - packets_count
+                print(f"Interface {iface}: {packets_count} packets captured, {packets_dropped} packets dropped, pcap size: {pcap_size} bytes")
             else:
                 print(f"Interface {iface}: pcap file not found")
 
@@ -83,7 +85,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Packet Capture Performance Test")
     parser.add_argument("-i", "--interfaces", help="List of interfaces to monitor, separated by commas", required=True)
     parser.add_argument("-t", "--tool", help="Packet capture tool to use (tshark, tcpdump, or dumpcap)", choices=["tshark", "tcpdump", "dumpcap"], required=True)
+    parser.add_argument("-n", "--total-packets-sent", help="Total number of packets to send", type=int, required=True)
     args = parser.parse_args()
 
     main(args)
-
